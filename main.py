@@ -38,6 +38,12 @@ def main():
     dist = analyse.getDistance(gpx)
     dist1 = analyse.calculateQuickDistance2D(gpx)
 
+    analyse.smoothGPXfile(args.GPXfilename, "test.gpx")
+
+    gpxs = GPX.readGPXFileTracks("test.gpx")
+    climb = analyse.calculateClimb(gpxs)
+    dist1 = analyse.calculateQuickDistance2D(gpxs)
+
 
 if __name__ == "__main__":
     main()

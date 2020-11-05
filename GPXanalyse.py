@@ -12,9 +12,12 @@
 ######################################################################################################################
 
 # User Libraries
+import libs.gpxsmooth as smooth
 
 # Published Libraries
 import math
+import gpxpy
+from lxml import etree
 
 # Constants
 climbMin = 0.1
@@ -107,3 +110,54 @@ def calculateQuickDistance2D(gpx):
     distf = distf / 10.0
     print("......Total Distance (km)", distf)
     return distf
+
+def smoothGPXfile(filename, outputfilename):
+
+    maxdistance = 50.0
+    maxinterval = 100.0
+
+    print("...Smooth GPX Track")
+    with open(filename, 'r') as fh:
+        root = etree.parse(fh).getroot()
+        NS = "{" + root.nsmap[None] + "}"
+    # <gpx> contains a <trk> element, which contains a <trkseg> element
+    # FIXME rewrite this to iterate over tracks and segments
+    trkseg = root.find(NS + "trk").find(NS + "trkseg")
+
+    # Add a 'keep' attribute to each <trkpt> element in the <trkseg>
+    # Also remove elevation data
+    for pt in trkseg:
+        pt.attrib['keep'] = "False"
+
+    # We assume we need the first and last point
+    # TODO make this configurable, to allow processing of only
+    #      part of a track
+    trkseg[0].attrib['keep'] = 'True'
+    trkseg[-1].attrib['keep'] = 'True'
+
+    smooth.process(trkseg, maxdistance, maxinterval)
+
+    # Remove the unneeded trackpoints based on the 'keep' attribute
+    m = len(trkseg)
+    kill = list(filter(lambda pt: pt.attrib['keep'] == 'False', trkseg))
+    for n in range(0, len(kill)):
+        trkseg.remove(kill[n])
+    n = len(trkseg)
+    print("......", m, n)
+
+    # Remove the 'keep' attribute
+    for n in range(0, len(trkseg)):
+        trkseg[n].attrib.pop('keep')
+
+    # Write out the modified GPX file
+    fh = open(outputfilename, 'w')
+    xml = fh.write(etree.tostring(root, pretty_print=True, xml_declaration=True).decode('utf-8'))
+    fh.close()
+
+
+
+
+
+
+
+
